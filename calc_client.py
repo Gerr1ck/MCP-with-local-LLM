@@ -5,9 +5,7 @@ import os
 import sys
 
 # llm
-from azure.ai.inference import ChatCompletionsClient
-from azure.ai.inference.models import SystemMessage, UserMessage
-from azure.core.credentials import AzureKeyCredential
+from call_llm import LLMClient
 import json
 
 
@@ -15,9 +13,8 @@ class MCPClient:
     def __init__(self):
         # Use the working example server from ../server/calc_server.py
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        server_script = os.path.abspath(
-            os.path.join(base_dir, "server", "calc_server.py")
-        )
+        server_script = "calc_server.py"
+        
         print(f"Using server script at: {server_script}")
 
         self.server_params = StdioServerParameters(
@@ -25,6 +22,8 @@ class MCPClient:
             args=[server_script],  # Absolute path to server script
             env=None,  # Optional environment variables
         )
+
+        self.llm_client = LLMClient()
 
     def convert_to_llm_tool(self, tool):
         tool_schema = {
@@ -43,45 +42,13 @@ class MCPClient:
         return tool_schema
 
     def call_llm(self, prompt, functions):
-        # Load GitHub token from file
-        with open('llm/client/githubtoken.txt', 'r') as file:
-            token = os.environ["GITHUB_TOKEN"] = file.read().strip()
-
-        endpoint = "https://models.inference.ai.azure.com"
         
-        model_name = "gpt-4o"
-
-        client = ChatCompletionsClient(
-            endpoint=endpoint,
-            credential=AzureKeyCredential(token),
-        )
-
-        print("CALLING LLM")
-        response = client.complete(
-            messages=[
-                {
-                "role": "system",
-                "content": "You are a helpful assistant.",
-                },
-                {
-                "role": "user",
-                "content": prompt,
-                },
-            ],
-            model=model_name,
-            tools = functions,
-            # Optional parameters
-            temperature=1.,
-            max_tokens=1000,
-            top_p=1.    
-        )
-
-        response_message = response.choices[0].message
-        
+        response = self.llm_client.choose_mcp_tools(prompt, functions)
+        print("LLM response: ", response)
         functions_to_call = []
 
-        if response_message.tool_calls:
-            for tool_call in response_message.tool_calls:
+        if response:
+            for tool_call in response:
                 print("TOOL: ", tool_call)
                 name = tool_call.function.name
                 args = json.loads(tool_call.function.arguments)

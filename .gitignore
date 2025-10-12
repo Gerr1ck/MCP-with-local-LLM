@@ -208,4 +208,8 @@ __marimo__/
 
 # LLM
 ai-hub-apps
-genie_bundle
+genie_bundle/*
+!genie_bundle/genie_config.json
+!genie_bundle/htp_backend_ext_config.json
+!genie_bundle/tokenizer.json
+copyFiles.ps1
