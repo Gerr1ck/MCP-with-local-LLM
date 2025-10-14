@@ -32,7 +32,7 @@ The MCP implementation showcases three key interaction patterns:
 4. **Copy QNN SDK files**  
    Locate your QNN SDK installation folder and copy files from these directories (SDK version may vary):
    ```
-   <QNN-SDK ROOT>/qairt/2.34.0.250424/lib/hexagon-v75/unsigned
+   <QNN-SDK ROOT>/qairt/2.34.0.250424/lib/hexagon-v73/unsigned
    <QNN-SDK ROOT>/qairt/2.34.0.250424/lib/aarch64-windows-msvc
    <QNN-SDK ROOT>/qairt/2.34.0.250424/bin/aarch64-windows-msvc
    ```

@@ -2,7 +2,7 @@
     "devices": [
         {
             "soc_model": 60,
-            "dsp_arch": "v75",
+            "dsp_arch": "v73",
             "cores": [
                 {
                     "core_id": 0,
