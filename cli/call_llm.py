@@ -1,10 +1,29 @@
+import sys
+import os
 from typing import Optional, List, Dict, Any
-from .cli_executor import CLIExecutor
-from .prompt_builder import ChatPromptBuilder
-from .response_parser import RegexResponseParser
-from .tool_formatter import MCPToolFormatter
-from .mcp_tool_selector import MCPToolSelector
-from .interfaces import ExecutorInterface, PromptBuilderInterface, ResponseParserInterface, ToolFormatterInterface
+
+# Add the parent directory to sys.path for direct execution
+if __name__ == "__main__":
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+# Try relative imports first (for package execution), then absolute imports (for direct execution)
+try:
+    from .cli_executor import CLIExecutor
+    from .prompt_builder import ChatPromptBuilder
+    from .response_parser import RegexResponseParser
+    from .tool_formatter import MCPToolFormatter
+    from .mcp_tool_selector import MCPToolSelector
+    from .interfaces import ExecutorInterface, PromptBuilderInterface, ResponseParserInterface, ToolFormatterInterface
+except ImportError:
+    from cli.cli_executor import CLIExecutor
+    from cli.prompt_builder import ChatPromptBuilder
+    from cli.response_parser import RegexResponseParser
+    from cli.tool_formatter import MCPToolFormatter
+    from cli.mcp_tool_selector import MCPToolSelector
+    from cli.interfaces import ExecutorInterface, PromptBuilderInterface, ResponseParserInterface, ToolFormatterInterface
 
 
 class LLMClient:
