@@ -8,7 +8,7 @@ from .interfaces import PromptBuilderInterface
 class ChatPromptBuilder(PromptBuilderInterface):
     """Builds prompts in chat format with system/user/assistant tags."""
     
-    def __init__(self, system_message: str = "You are a helpful assistant. Be helpful but brief."):
+    def __init__(self, system_message: str = "You are an ultra-concise, factual assistant. Answer the user's request directly and avoid any unnecessary elaboration, conversational padding, or self-reference."):
         self.system_message = system_message
     
     def build_chat_prompt(self, user_message: str) -> str:

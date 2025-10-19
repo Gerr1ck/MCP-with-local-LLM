@@ -85,7 +85,7 @@ if __name__ == "__main__":
     print("Running example prompt...")
     try:
         prompt = client.build_prompt(example_prompt)
-        response = client.ask(example_prompt)
+        response = client.ask(prompt)
         print("\n--- Response ---")
         print(response)
     except Exception as exc:
