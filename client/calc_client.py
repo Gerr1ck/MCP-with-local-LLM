@@ -1,13 +1,14 @@
-from mcp import ClientSession, StdioServerParameters, types
+from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 import asyncio
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'cli')))
+# Add the parent directory to sys.path so we can import from cli package
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # llm
-from call_llm import LLMClient
+from cli.call_llm import LLMClient
 
 
 class MCPClient:
@@ -63,11 +64,11 @@ class MCPClient:
         try:
             async with stdio_client(self.server_params) as (read, write):
                 async with ClientSession(read, write) as session:
-                    print("📡 Connecting to MCP server...")
+                    print("Connecting to MCP server...")
 
                     await session.initialize()
 
-                    print("✅ Connected to MCP server successfully!")
+                    print("Connected to MCP server successfully!")
 
                     # List available resources
                     resources = await session.list_resources()
@@ -111,12 +112,12 @@ class MCPClient:
                         result = await session.call_tool(f["name"], arguments=f["args"])
                         print("LLM result: ", result.content)
 
-                    print("\n✨ Client operations completed successfully!")
+                    print("\n Client operations completed successfully!")
 
         except Exception as e:
             import traceback
 
-            print(f"❌ Error running MCP client: {e}")
+            print(f"Error running MCP client: {e}")
             traceback.print_exc()
             raise
 
