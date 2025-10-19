@@ -19,7 +19,7 @@ class LLMClient:
         # If you need to run with a specific working directory, pass cwd (e.g. "genie_bundle")
         self.cwd = cwd
         
-    def _build_prompt(self, user_message: str) -> str:
+    def build_prompt(self, user_message: str) -> str:
         """Return a full prompt string. 
         """
         return (
@@ -28,13 +28,11 @@ class LLMClient:
             "<|assistant|>\n"
         )
 
-    def ask(self, user_message: str) -> str:
-        """Send the prompt to the executable and return stdout.
+    def ask(self, prompt: str) -> str:
+        """Send the prompt to the executable and return stdout."""
 
-        Example: client.ask("Whats the capital of France?")
-                 or client.ask("<|user|>Whats the capital of France?\n<|end|>\n")
-        """
-        prompt = self._build_prompt(user_message)
+        print("Calling LLM with prompt:")
+        print(prompt)
 
         command = [
             self.exe_path,
@@ -127,71 +125,69 @@ class LLMClient:
     
     def _build_tool_selection_prompt(self, user_request: str, tools_description: str) -> str:
         """Build a prompt asking the LLM to select appropriate tools."""
-        prompt = f"""<|system|>
-You are an AI assistant that helps select the right tools for a user's request. 
-Given a user request and a list of available tools, you need to:
-
-1. Analyze the user's request
-2. Select the appropriate tool(s) that can fulfill the request
-3. Provide the necessary arguments for each selected tool
-4. Respond with a JSON array of tool calls
-5. Dont write anything else. Just response with a clean JSON array.
-
-If no tools are needed, respond with an empty array: []
-
-Each tool call should have this exact format:
-{{
-    "type": "function",
-    "function": {{
-        "name": "tool_name",
-        "description": "tool description",
-        "type": "function",
-        "parameters": {{
-            "type": "object",
-            "properties": {{
-                "param1": {{"type": "integer", "description": "parameter description"}},
-                "param2": {{"type": "string", "description": "parameter description"}}
-            }}
-        }}
-    }}
-}}
-
-<|end|>
-
-<|user|>
-User request: {user_request}
-
-{tools_description}
-
-Please select the appropriate tools and provide the arguments needed to fulfill this request. Respond only with the JSON array of tool calls.
-Dont write anything else. Just response with a clean JSON array.
-<|end|>
-
-<|assistant|>
-"""
-        return prompt
+        return (
+            "<|system|>\nYou are an AI assistant that helps select the right tools for a user's request.\n"
+            "Given a user request and a list of available tools from the MCP Server, you need to:\n\n"
+            "1. Analyze the user's request\n"
+            "2. Select the appropriate tool(s) that can fulfill the request\n"
+            "3. Provide the necessary arguments for each selected tool\n"
+            "4. Respond ONLY in valid JSON with the following schema:\n\n"
+            "{{\n"
+            '  "tool": "<tool_name>",\n'
+            '  "arguments": {{ ... }}\n'
+            "}}\n\n"
+            "If no tools are needed, respond with an empty array: []\n\n"
+            "<|end|>\n"
+            
+            f"<|user|>User request: {user_request}\n\n"
+            f"Available Tools at MCP Server: {tools_description}\n\n"
+            "Please select the appropriate tools and provide the arguments needed to fulfill this request.\n"
+            "<|end|>\n"
+            "<|assistant|>\n"
+        )
     
     def _parse_tool_selection_response(self, response: str) -> List[Dict[str, Any]]:
-        """Parse the LLM response to extract tool calls in the convert_to_llm_tool format."""
+        """Parse the LLM response to extract tool calls in the expected format."""
         try:
-            # Try to find JSON in the response
+            # Strip whitespace
             response = response.strip()
             
-            # Look for JSON array patterns
-            json_match = re.search(r'\[.*\]', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(0)
-                parsed_response = json.loads(json_str)
-            elif response.startswith('[') and response.endswith(']'):
-                parsed_response = json.loads(response)
+            # Remove markdown code blocks if present
+            if response.startswith('```json'):
+                response = response[7:]  # Remove ```json
+            if response.startswith('```'):
+                response = response[3:]  # Remove ```
+            if response.endswith('```'):
+                response = response[:-3]  # Remove ending ```
+            
+            response = response.strip()
+            
+            # Try to parse as JSON
+            parsed = json.loads(response)
+            
+            # Handle different response formats
+            if isinstance(parsed, list):
+                # Already a list, return as is
+                return parsed
+            elif isinstance(parsed, dict):
+                # Single tool call, convert to list
+                # Check if it's in the expected format: {"tool": "name", "arguments": {...}}
+                if "tool" in parsed and "arguments" in parsed:
+                    return [parsed]
+                # Handle the nested format from your example
+                elif "tool" in parsed and parsed["tool"] == "function" and "arguments" in parsed:
+                    args = parsed["arguments"]
+                    if "function" in args and "arguments" in args:
+                        # Extract the actual tool name and arguments
+                        tool_name = args["function"]
+                        tool_args = args["arguments"]
+                        return [{"tool": tool_name, "arguments": tool_args}]
+                # Fallback: return as single item list
+                return [parsed]
             else:
                 return []
             
-            # Return the tools in the exact convert_to_llm_tool format
-            # The LLM should already return them in this format
-            return parsed_response
-            
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError, KeyError) as e:
             print(f"Failed to parse tool selection response: {e}")
             print(f"Response was: {response}")
             return []
@@ -202,10 +198,11 @@ if __name__ == "__main__":
     client = LLMClient()
 
     # Example: pass either the full tagged prompt or just the plain user content.
-    example_prompt = "<|user|>Whats the capital of Switzerland?\n<|end|>\n"
+    example_prompt = "Whats the capital of Switzerland?"
 
     print("Running example prompt...")
     try:
+        prompt = client.build_prompt(example_prompt)
         response = client.ask(example_prompt)
         print("\n--- Response ---")
         print(response)

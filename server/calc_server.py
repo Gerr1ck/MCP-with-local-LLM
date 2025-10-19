@@ -38,5 +38,6 @@ def get_greeting(name: str) -> str:
 
 if __name__ == "__main__":
     # Run the server
-    mcp.run()
     print("MCP Server is running on port 5000")
+    mcp.run()
+    

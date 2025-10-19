@@ -4,16 +4,16 @@ import asyncio
 import os
 import sys
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'cli')))
+
 # llm
 from call_llm import LLMClient
-import json
 
 
 class MCPClient:
     def __init__(self):
         # Use the working example server from ../server/calc_server.py
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        server_script = "calc_server.py"
+        server_script = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'server', 'calc_server.py'))
         
         print(f"Using server script at: {server_script}")
 
@@ -41,7 +41,7 @@ class MCPClient:
 
         return tool_schema
 
-    def call_llm(self, prompt, functions):
+    def choose_mcp_tools(self, prompt, functions):
         
         response = self.llm_client.choose_mcp_tools(prompt, functions)
         print("LLM response: ", response)
@@ -50,9 +50,12 @@ class MCPClient:
         if response:
             for tool_call in response:
                 print("TOOL: ", tool_call)
-                name = tool_call.function.name
-                args = json.loads(tool_call.function.arguments)
-                functions_to_call.append({ "name": name, "args": args })
+                # Access the new simplified format: {"function": "name", "arguments": {...}}
+                name = tool_call.get("function", "")
+                args = tool_call.get("arguments", {})
+                
+                if name:  # Only add if we have a valid tool name
+                    functions_to_call.append({ "name": name, "args": args })
 
         return functions_to_call
 
@@ -101,7 +104,7 @@ class MCPClient:
                     print("USING LLM TO DECIDE WHAT TOOLS TO CALL")
                     prompt = "Add 2 to 20"
                     # ask LLM what tools to all, if any
-                    functions_to_call = self.call_llm(prompt, functions)
+                    functions_to_call = self.choose_mcp_tools(prompt, functions)
 
                     # call suggested functions
                     for f in functions_to_call:
