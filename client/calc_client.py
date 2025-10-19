@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # llm
 from cli.call_llm import LLMClient
-
+from cli.tool_formatter import MCPToolFormatter
 
 class MCPClient:
     def __init__(self):
@@ -25,39 +25,25 @@ class MCPClient:
         )
 
         self.llm_client = LLMClient()
-
-    def convert_to_llm_tool(self, tool):
-        tool_schema = {
-            "type": "function",
-            "function": {
-                "name": tool.name,
-                "description": tool.description,
-                "type": "function",
-                "parameters": {
-                    "type": "object",
-                    "properties": tool.inputSchema["properties"]
-                }
-            }
-        }
-
-        return tool_schema
+        self.tool_formatter = MCPToolFormatter()
 
     def choose_mcp_tools(self, prompt, functions):
         
         response = self.llm_client.choose_mcp_tools(prompt, functions)
         print("LLM response: ", response)
+        
         functions_to_call = []
-
         if response:
             for tool_call in response:
-                print("TOOL: ", tool_call)
-                # Access the new simplified format: {"function": "name", "arguments": {...}}
-                name = tool_call.get("function", "")
-                args = tool_call.get("arguments", {})
-                
-                if name:  # Only add if we have a valid tool name
-                    functions_to_call.append({ "name": name, "args": args })
-
+                # Handle the nested JSON structure: {"tool": "function", "arguments": {"function": "add", "arguments": {...}}}
+                if tool_call.get("tool") == "function":
+                    args_section = tool_call.get("arguments", {})
+                    function_name = args_section.get("function", "")
+                    function_args = args_section.get("arguments", {})
+                    
+                    if function_name:  # Only add if we have a valid tool name
+                        functions_to_call.append({"name": function_name, "args": function_args})
+        
         return functions_to_call
 
     async def run(self):
@@ -89,7 +75,7 @@ class MCPClient:
                     for tool in tools.tools:
                         print("Tool: ", tool.name)
                         print("Tool: ", tool.inputSchema["properties"])
-                        functions.append(self.convert_to_llm_tool(tool))
+                        functions.append(self.tool_formatter.convert_to_llm_tool(tool))
 
                     # Read a resource
                     print("READING RESOURCE")
