@@ -33,12 +33,9 @@ class MCPToolSelector:
         if not available_tools:
             return []
         
-        try:
-            # Format tools for the LLM
-            tools_description = self.tool_formatter.format_tools(available_tools)
-            
+        try:            
             # Build prompt for tool selection
-            prompt = self.prompt_builder.build_tool_selection_prompt(user_request, tools_description)
+            prompt = self.prompt_builder.build_tool_selection_prompt(user_request, available_tools)
             
             # Execute and get raw response
             raw_response = self.executor.execute(prompt)

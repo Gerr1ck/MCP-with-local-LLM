@@ -51,3 +51,8 @@ class ToolFormatterInterface(ABC):
     def format_tools(self, tools: List[Dict[str, Any]]) -> str:
         """Format tools into readable description."""
         pass
+    
+    @abstractmethod
+    def convert_to_llm_tool(self, tool: Any) -> Dict[str, Any]:
+        """Convert MCP tool to LLM-compatible tool schema."""
+        pass

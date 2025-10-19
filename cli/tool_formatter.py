@@ -42,3 +42,19 @@ class MCPToolFormatter(ToolFormatterInterface):
             param_list.append(f"{param_name} ({param_type}): {param_desc}")
         
         return f"\n  Parameters: {', '.join(param_list)}"
+    
+    def convert_to_llm_tool(self, tool: Any) -> Dict[str, Any]:
+        """Convert MCP tool to LLM-compatible tool schema (OpenAI function format)."""
+        tool_schema = {
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description,
+                "type": "function",
+                "parameters": {
+                    "type": "object",
+                    "properties": tool.inputSchema["properties"]
+                }
+            }
+        }
+        return tool_schema
