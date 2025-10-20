@@ -53,6 +53,45 @@ The MCP implementation showcases three key interaction patterns:
    The LLM should respond and the NPU should show computation activity
    ![alt text](resources/image.png)
 
-## Note
+## Calculator Sample
 
-The MCP implementation files (`calc_client.py` and `calc_server.py`) are currently work in progress. This README will be updated with detailed MCP usage instructions as soon as possible.
+### Overview
+
+The calculator sample demonstrates the Model Context Protocol (MCP) in action. The calculator client connects to the calculator server and executes four basic arithmetic operations:
+- **Addition**: Add two numbers
+- **Subtraction**: Subtract two numbers
+- **Multiplication**: Multiply two numbers
+- **Division**: Divide two numbers
+
+The sample showcases two modes of tool invocation:
+1. **Direct Tool Calls**: The client directly invokes specific calculator tools with predefined arguments
+2. **LLM-Driven Tool Selection**: The client uses the local LLM to intelligently parse natural language prompts and automatically select which calculator tools to use
+
+### Running the Calculator Sample
+
+#### Step 1: Start the Calculator Server
+
+Open a terminal and run the server script from the project root:
+
+```powershell
+python server/calc_server.py
+```
+
+The server will initialize and wait for client connections.
+
+#### Step 2: Start the Calculator Client
+
+Open a new terminal and run the client script from the project root:
+
+```powershell
+python client/calc_client.py
+```
+
+The client will:
+1. Connect to the running server
+2. Retrieve and display available resources, tools, and resource templates
+3. Read a greeting resource from the server
+4. Execute direct arithmetic operations
+5. Use the LLM to parse a natural language prompt and automatically execute the appropriate calculator tools
+
+You should see output showing all the operations and their results.
