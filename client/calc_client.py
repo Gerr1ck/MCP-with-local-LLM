@@ -1,55 +1,31 @@
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+"""
+Calculator Client for MCP
+This script demonstrates the calculator use case with the MCP client.
+It connects to a calculation server and performs various operations.
+"""
 import asyncio
 import os
 import sys
+from mcp.client.stdio import stdio_client
+from mcp import ClientSession
 
 # Add the parent directory to sys.path so we can import from cli package
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# llm
-from cli.call_llm import LLMClient
-from cli.tool_formatter import MCPToolFormatter
+from mcp_client import MCPClient
 
-class MCPClient:
-    def __init__(self):
-        # Use the working example server from ../server/calc_server.py
-        server_script = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'server', 'calc_server.py'))
-        
-        print(f"\n{'='*60}")
-        print(f"MCP Client Configuration")
-        print(f"{'='*60}")
-        print(f"Server script: {server_script}")
 
-        self.server_params = StdioServerParameters(
-            command=sys.executable,  # Use the same python interpreter that's running this client
-            args=[server_script],  # Absolute path to server script
-            env=None,  # Optional environment variables
-        )
-
-        self.llm_client = LLMClient()
-        self.tool_formatter = MCPToolFormatter()
-
-    def choose_mcp_tools(self, prompt, functions):
-        
-        response = self.llm_client.choose_mcp_tools(prompt, functions)
-        print(f"\nLLM Response: {response}")
-        
-        functions_to_call = []
-        if response:
-            for tool_call in response:
-                # Handle the nested JSON structure: {"tool": "function", "arguments": {"function": "add", "arguments": {...}}}
-                if tool_call.get("tool") == "function":
-                    args_section = tool_call.get("arguments", {})
-                    function_name = args_section.get("function", "")
-                    function_args = args_section.get("arguments", {})
-                    
-                    if function_name:  # Only add if we have a valid tool name
-                        functions_to_call.append({"name": function_name, "args": function_args})
-        
-        return functions_to_call
-
+class CalculatorClient(MCPClient):
+    """
+    Specialized MCP Client for the calculator use case.
+    Implements specific workflows for calculator operations.
+    """
+    
     async def run(self):
+        """
+        Run the calculator client workflow.
+        This includes demonstrating all calculator operations.
+        """
         try:
             async with stdio_client(self.server_params) as (read, write):
                 async with ClientSession(read, write) as session:
@@ -65,7 +41,7 @@ class MCPClient:
                     print(f"\n{'='*60}")
                     print("AVAILABLE RESOURCES")
                     print(f"{'='*60}")
-                    resources = await session.list_resources()
+                    resources = await self.list_resources(session)
                     for resource in resources:
                         print(f"  • {resource}")
 
@@ -73,7 +49,7 @@ class MCPClient:
                     print(f"\n{'='*60}")
                     print("RESOURCE TEMPLATES")
                     print(f"{'='*60}")
-                    resource_templates = await session.list_resource_templates()
+                    resource_templates = await self.list_resource_templates(session)
                     for template in resource_templates:
                         print(f"  • {template}")
 
@@ -81,18 +57,16 @@ class MCPClient:
                     print(f"\n{'='*60}")
                     print("AVAILABLE TOOLS")
                     print(f"{'='*60}")
-                    tools = await session.list_tools()
-                    functions = []
+                    functions, tools = await self.list_tools(session)
                     for tool in tools.tools:
                         print(f"\n  Tool: {tool.name}")
                         print(f"  Input Schema: {tool.inputSchema['properties']}")
-                        functions.append(self.tool_formatter.convert_to_llm_tool(tool))
 
                     # ============== READ RESOURCE ==============
                     print(f"\n{'='*60}")
                     print("READING RESOURCE")
                     print(f"{'='*60}")
-                    content, mime_type = await session.read_resource("greeting://hello")
+                    content, mime_type = await self.read_resource(session, "greeting://hello")
                     print(f"  Content: {content}")
                     print(f"  MIME Type: {mime_type}")
 
@@ -100,7 +74,7 @@ class MCPClient:
                     print(f"\n{'='*60}")
                     print("DIRECT TOOL CALL (add 1 + 7)")
                     print(f"{'='*60}")
-                    result = await session.call_tool("add", arguments={"a": 1, "b": 7})
+                    result = await self.call_tool(session, "add", {"a": 1, "b": 7})
                     print(f"  Result: {result.content}")
 
                     # ============== LLM-DRIVEN TOOL CALLS ==============
@@ -113,7 +87,7 @@ class MCPClient:
 
                     print(f"\n  Calling suggested tools:")
                     for f in functions_to_call:
-                        result = await session.call_tool(f["name"], arguments=f["args"])
+                        result = await self.call_tool(session, f["name"], f["args"])
                         print(f"    → {f['name']}({f['args']}) = {result.content}")
 
                     # ============== COMPLETION ==============
@@ -130,7 +104,14 @@ class MCPClient:
 
 
 async def main():
-    client = MCPClient()
+    """Run the calculator client."""
+    # Get the path to the calculator server
+    server_script = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'server', 'calc_server.py'))
+    
+    # Initialize the calculator client with the server script
+    client = CalculatorClient(server_script)
+    
+    # Run the calculator workflow
     await client.run()
 
 
