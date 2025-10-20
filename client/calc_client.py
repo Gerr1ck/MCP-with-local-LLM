@@ -16,7 +16,10 @@ class MCPClient:
         # Use the working example server from ../server/calc_server.py
         server_script = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'server', 'calc_server.py'))
         
-        print(f"Using server script at: {server_script}")
+        print(f"\n{'='*60}")
+        print(f"MCP Client Configuration")
+        print(f"{'='*60}")
+        print(f"Server script: {server_script}")
 
         self.server_params = StdioServerParameters(
             command=sys.executable,  # Use the same python interpreter that's running this client
@@ -30,7 +33,7 @@ class MCPClient:
     def choose_mcp_tools(self, prompt, functions):
         
         response = self.llm_client.choose_mcp_tools(prompt, functions)
-        print("LLM response: ", response)
+        print(f"\nLLM Response: {response}")
         
         functions_to_call = []
         if response:
@@ -50,55 +53,73 @@ class MCPClient:
         try:
             async with stdio_client(self.server_params) as (read, write):
                 async with ClientSession(read, write) as session:
-                    print("Connecting to MCP server...")
+                    # ============== SERVER CONNECTION ==============
+                    print(f"\n{'='*60}")
+                    print("CONNECTING TO MCP SERVER")
+                    print(f"{'='*60}")
 
                     await session.initialize()
+                    print("Connected to MCP server successfully!\n")
 
-                    print("Connected to MCP server successfully!")
-
-                    # List available resources
+                    # ============== RESOURCES ==============
+                    print(f"\n{'='*60}")
+                    print("AVAILABLE RESOURCES")
+                    print(f"{'='*60}")
                     resources = await session.list_resources()
-                    print("LISTING RESOURCES")
                     for resource in resources:
-                        print("Resource: ", resource)
+                        print(f"  • {resource}")
 
-                    # List available resources templates
+                    # ============== RESOURCE TEMPLATES ==============
+                    print(f"\n{'='*60}")
+                    print("RESOURCE TEMPLATES")
+                    print(f"{'='*60}")
                     resource_templates = await session.list_resource_templates()
-                    print("LISTING RESOURCE TEMPLATES")
                     for template in resource_templates:
-                        print("Template: ", template)
+                        print(f"  • {template}")
 
-                    # List available tools
+                    # ============== TOOLS ==============
+                    print(f"\n{'='*60}")
+                    print("AVAILABLE TOOLS")
+                    print(f"{'='*60}")
                     tools = await session.list_tools()
-                    print("LISTING TOOLS")
                     functions = []
                     for tool in tools.tools:
-                        print("Tool: ", tool.name)
-                        print("Tool: ", tool.inputSchema["properties"])
+                        print(f"\n  Tool: {tool.name}")
+                        print(f"  Input Schema: {tool.inputSchema['properties']}")
                         functions.append(self.tool_formatter.convert_to_llm_tool(tool))
 
-                    # Read a resource
+                    # ============== READ RESOURCE ==============
+                    print(f"\n{'='*60}")
                     print("READING RESOURCE")
+                    print(f"{'='*60}")
                     content, mime_type = await session.read_resource("greeting://hello")
-                    print(f"Content: {content}, MIME Type: {mime_type}")
+                    print(f"  Content: {content}")
+                    print(f"  MIME Type: {mime_type}")
 
-                    # Call a tool
-                    print("CALL TOOL")
+                    # ============== DIRECT TOOL CALL ==============
+                    print(f"\n{'='*60}")
+                    print("DIRECT TOOL CALL (add 1 + 7)")
+                    print(f"{'='*60}")
                     result = await session.call_tool("add", arguments={"a": 1, "b": 7})
-                    print(result.content)
+                    print(f"  Result: {result.content}")
 
-                    # Use LLM to decide what tools to call
-                    print("USING LLM TO DECIDE WHAT TOOLS TO CALL")
+                    # ============== LLM-DRIVEN TOOL CALLS ==============
+                    print(f"\n{'='*60}")
+                    print("LLM-DRIVEN TOOL SELECTION")
+                    print(f"{'='*60}")
                     prompt = "Add 2 to 20"
-                    # ask LLM what tools to all, if any
+                    print(f"  Prompt: '{prompt}'")
                     functions_to_call = self.choose_mcp_tools(prompt, functions)
 
-                    # call suggested functions
+                    print(f"\n  Calling suggested tools:")
                     for f in functions_to_call:
                         result = await session.call_tool(f["name"], arguments=f["args"])
-                        print("LLM result: ", result.content)
+                        print(f"    → {f['name']}({f['args']}) = {result.content}")
 
-                    print("\n Client operations completed successfully!")
+                    # ============== COMPLETION ==============
+                    print(f"\n{'='*60}")
+                    print("CLIENT OPERATIONS COMPLETED SUCCESSFULLY!")
+                    print(f"{'='*60}\n")
 
         except Exception as e:
             import traceback
